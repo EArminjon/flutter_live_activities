@@ -119,12 +119,12 @@ design.
   appear!)
 
 ```swift
-struct LiveActivitiesAppAttributes: ActivityAttributes, Identifiable {
+struct LiveActivitiesAppAttributes: ActivityAttributes {
   public typealias LiveDeliveryData = ContentState // don't forget to add this line, otherwise, live activity will not display it.
 
   public struct ContentState: Codable, Hashable { }
 
-  var id = UUID()
+  var id: String
 }
 ```
 
@@ -770,10 +770,10 @@ these notifications.
 ## 📘 Documentation
 
 | Name                            | Description                                                                                                                                 | Returned value                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| ------------------------------- |---------------------------------------------------------------------------------------------------------------------------------------------| ---------------------------------------------------------------------------------------------------------- |
 | `.init()`                       | Initialize the Plugin by providing an App Group Id (see above)                                                                              | `Future` When the plugin is ready to create/update an activity                                             |
 | `.createActivity()`             | Create an iOS live activity                                                                                                                 | `String` The activity identifier                                                                           |
-| `.createOrUpdateActivity()`     | Create or updates an (existing) live activity based on the provided `UUID` via `customId`                                                   | `String` The activity identifier                                                                           |
+| `.createOrUpdateActivity()`     | Create or updates an (existing) live activity by using the `activityId` provided                                                            | `String` The activity identifier                                                                           |
 | `.updateActivity()`             | Update the live activity data by using the `activityId` provided                                                                            | `Future` When the activity was updated                                                                     |
 | `.endActivity()`                | End the live activity by using the `activityId` provided                                                                                    | `Future` When the activity was ended                                                                       |
 | `.getAllActivitiesIds()`        | Get all activities ids created                                                                                                              | `Future<List<String>>` List of all activities ids                                                          |

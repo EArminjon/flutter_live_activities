@@ -24,7 +24,7 @@ struct LiveActivitiesAppAttributes: ActivityAttributes, Identifiable {
   
   public struct ContentState: Codable, Hashable { }
   
-  var id = UUID()
+  var id: String
 }
 
 // Create shared default with custom group

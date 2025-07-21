@@ -224,7 +224,7 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
   }
   
   @available(iOS 16.1, *)
-  func createActivity(data: [String: Any], removeWhenAppIsKilled: Bool, staleIn: Int?, activityId: String? = nil, result: @escaping FlutterResult) {
+  func createActivity(data: [String: Any], removeWhenAppIsKilled: Bool, staleIn: Int?, activityId: String, result: @escaping FlutterResult) {
     let center = UNUserNotificationCenter.current()
     center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
       if let error = error {
@@ -232,13 +232,7 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
       }
     }
     
-    let liveDeliveryAttributes: LiveActivitiesAppAttributes
-    if let activityId = activityId {
-        let uuid = uuid5(name: activityId)
-        liveDeliveryAttributes = LiveActivitiesAppAttributes(id: uuid)
-    } else {
-        liveDeliveryAttributes = LiveActivitiesAppAttributes()
-    }
+    let liveDeliveryAttributes = LiveActivitiesAppAttributes(id: activityId)
     let initialContentState = LiveActivitiesAppAttributes.LiveDeliveryData(appGroupId: appGroupId!)
     var deliveryActivity: Activity<LiveActivitiesAppAttributes>?
     let prefix = liveDeliveryAttributes.id
@@ -310,8 +304,6 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
   @available(iOS 16.1, *)
   func createOrUpdateActivity(data: [String: Any], activityId: String, removeWhenAppIsKilled: Bool, staleIn: Int?, result: @escaping FlutterResult) {
     Task {
-        let uuid = uuid5(name: activityId)
-
         var activities: [Activity<LiveActivitiesAppAttributes>] = []
         for _ in 0..<3 { // Try up to 3 times
             activities = await MainActor.run { Activity<LiveActivitiesAppAttributes>.activities }
@@ -322,7 +314,7 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
         }
 
         let existingActivity = activities.first {
-          $0.attributes.id == uuid && $0.activityState != .dismissed && $0.activityState != .ended
+          $0.attributes.id == activityId && $0.activityState != .dismissed && $0.activityState != .ended
         }
 
         if let activityId = existingActivity?.id {
@@ -419,7 +411,7 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
   private func endActivitiesWithId(activityIds: [String]) async {
     for activity in Activity<LiveActivitiesAppAttributes>.activities {
       for id in activityIds {
-        if id == activity.id || id.uppercased() == activity.attributes.id.uuidString {
+        if id == activity.id {
             await activity.end(dismissalPolicy: .immediate)
             break
         }
@@ -457,14 +449,18 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
     }
   }
   
-  struct LiveActivitiesAppAttributes: ActivityAttributes, Identifiable {
+  struct LiveActivitiesAppAttributes: ActivityAttributes {
     public typealias LiveDeliveryData = ContentState
     
     public struct ContentState: Codable, Hashable {
       var appGroupId: String
     }
     
-    var id = UUID()
+    var id: String
+
+    init(id: String) {
+      self.id = id
+    }
   }
   
   @available(iOS 16.1, *)
@@ -531,33 +527,4 @@ public class LiveActivitiesPlugin: NSObject, FlutterPlugin, FlutterStreamHandler
           return "unknown"
       }
   }
-
-  private func uuid5(namespace: UUID = UUID(uuidString: "6ba7b810-9dad-11d1-80b4-00c04fd430c8")!, name: String) -> UUID {
-      // Convert namespace UUID to bytes
-      var namespaceBytes = withUnsafeBytes(of: namespace.uuid) { Data($0) }
-
-      // Append the name bytes (as UTF-8)
-      let nameBytes = Data(name.utf8)
-      namespaceBytes.append(nameBytes)
-
-      // SHA1 hash
-      let hash = Insecure.SHA1.hash(data: namespaceBytes)
-
-      // Take the first 16 bytes
-      var bytes = [UInt8](hash.prefix(16))
-
-      // Set UUID version to 5 (0101)
-      bytes[6] = (bytes[6] & 0x0F) | 0x50
-
-      // Set UUID variant to RFC 4122 (10xx)
-      bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-      // Convert bytes to UUID
-      let uuid = uuid_t(bytes[0], bytes[1], bytes[2], bytes[3],
-                        bytes[4], bytes[5], bytes[6], bytes[7],
-                        bytes[8], bytes[9], bytes[10], bytes[11],
-                        bytes[12], bytes[13], bytes[14], bytes[15])
-      return UUID(uuid: uuid)
-  }
-
 }
